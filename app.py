@@ -7,9 +7,6 @@ from groq import Groq
 from datetime import timedelta
 import time
 
-# ==========================================
-# PAGE SETUP & CUSTOM CSS FOR GREAT UI
-# ==========================================
 st.set_page_config(page_title="AI Gas Forecaster", layout="wide", page_icon="⚡")
 
 st.markdown("""
@@ -19,11 +16,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("⚡ AI Natural Gas Pricing Intelligence")
-st.markdown("Enterprise-grade forecasting powered by **XGBoost** and **Generative AI**.")
+st.markdown("Quantitative forecasting infrastructure and generative intelligence.")
 
-# ==========================================
-# 1. DATA PIPELINE & MODEL ENGINE
-# ==========================================
 @st.cache_data
 def load_data_and_train_model():
     df = pd.read_csv('Nat_Gas.csv')
@@ -55,22 +49,15 @@ def predict_future(target_date):
     future_X = pd.DataFrame([[ordinal, m_sin, m_cos, sim_demand]], columns=features)
     return float(model.predict(future_X)[0])
 
-# ==========================================
-# 2. SIDEBAR CONTROLS
-# ==========================================
 with st.sidebar:
     st.header("⚙️ Control Panel")
     target_date = st.date_input("Target Forecast Date:", value=pd.to_datetime("2025-01-15"))
     target_date = pd.to_datetime(target_date)
     forecast_price = predict_future(target_date)
     
-    # Static placeholder variable for backend stability
     api_key = None
     price_delta = forecast_price - current_price
 
-# ==========================================
-# 3. LIVE COMMODITY FEED SIMULATION
-# ==========================================
 st.markdown("### 🌐 Live Market Data Stream")
 ticker_placeholder = st.empty()
 
@@ -78,7 +65,6 @@ if "live_oil_price" not in st.session_state:
     st.session_state.live_oil_price = 78.50
     st.session_state.oil_history = [78.10, 78.35, 78.20, 78.45, 78.50]
 
-# Generate simulation data oscillations
 price_fluctuation = np.random.normal(0, 0.15)
 st.session_state.live_oil_price = round(st.session_state.live_oil_price + price_fluctuation, 2)
 st.session_state.oil_history.append(st.session_state.live_oil_price)
@@ -86,7 +72,6 @@ st.session_state.oil_history.append(st.session_state.live_oil_price)
 if len(st.session_state.oil_history) > 15:
     st.session_state.oil_history.pop(0)
 
-# Build sparkline graph
 sparkline = go.Figure()
 sparkline.add_trace(go.Scatter(
     y=st.session_state.oil_history, 
@@ -111,12 +96,8 @@ with ticker_placeholder.container():
     with col_t2:
         st.plotly_chart(sparkline, use_container_width=True, config={'displayModeBar': False})
 
-# ==========================================
-# 4. TABBED UI LAYOUT
-# ==========================================
 tab1, tab2 = st.tabs(["📊 Market Dashboard", "💬 AI Financial Analyst"])
 
-# --- TAB 1: DASHBOARD ---
 with tab1:
     st.subheader(f"Forecast Overview: {target_date.strftime('%B %Y')}")
     
@@ -139,7 +120,6 @@ with tab1:
     fig.update_layout(height=450, margin=dict(l=0, r=0, t=30, b=0), hovermode="x unified", template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
-# --- TAB 2: CONVERSATIONAL AGENT ---
 with tab2:
     st.subheader("Chat with the Quantitative Analyst Agent")
     st.caption("Ask about the forecast, market trends, or how the XGBoost model came to its conclusion.")
@@ -164,7 +144,7 @@ with tab2:
             if active_key:
                 try:
                     client = Groq(api_key=active_key)
-                    system_context = f"""You are a J.P. Morgan Quantitative Analyst. You are polite, highly analytical, and concise. 
+                    system_context = f"""You are a Principal Commodities Analyst. You are polite, highly analytical, and concise. 
                     Current Gas Price: ${current_price:.2f}. 
                     Target Date selected by user: {target_date.strftime('%B %Y')}. 
                     XGBoost Forecasted Price: ${forecast_price:.2f}.
@@ -186,6 +166,5 @@ with tab2:
                 st.markdown(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
 
-# Controlled high-frequency ticker loop rerun
 time.sleep(3.0)
 st.rerun()
