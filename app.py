@@ -128,12 +128,13 @@ with tab2:
         with st.chat_message("user"):
             st.markdown(prompt)
             
-        # Agent Response Generation
-        with st.chat_message("assistant"):
-            if api_key:
-                # Real Groq/Llama-3 Call
-                try:
-                    client = Groq(api_key=api_key)
+        # Check if key is in the sidebar OR hidden in Streamlit secrets vault
+         active_key = api_key if api_key else st.secrets.get("GROQ_API_KEY")
+
+         if active_key:
+             # Real Groq/Llama-3 Call
+             try:
+                 client = Groq(api_key=active_key)
                     # System Prompt Engineering: Give the AI context about our specific app data
                     system_context = f"""You are a J.P. Morgan Quantitative Analyst. You are polite, highly analytical, and concise. 
                     Current Gas Price: ${current_price:.2f}. 
