@@ -62,14 +62,62 @@ with st.sidebar:
     target_date = st.date_input("Target Forecast Date:", value=pd.to_datetime("2025-01-15"))
     target_date = pd.to_datetime(target_date)
     forecast_price = predict_future(target_date)
-    
-    st.divider()
-    st.header("🤖 Agent Authentication")
-    api_key = st.text_input("groq API Key (Optional)", type="password", help="Leave blank to use the simulated agent.")
+ api_key = None
     
     price_delta = forecast_price - current_price
 
 # ==========================================
+# ==========================================
+# LIVE COMMODITY FEED SIMULATION
+# ==========================================
+import time
+
+st.markdown("### 🌐 Live Market Data Stream")
+ticker_placeholder = st.empty()
+
+# We cache a baseline session price so it oscillates cleanly rather than jumping wildly
+if "live_oil_price" not in st.session_state:
+    st.session_state.live_oil_price = 78.50
+    st.session_state.oil_history = [78.10, 78.35, 78.20, 78.45, 78.50]
+
+# High-frequency simulation update loop
+# Creates a non-blocking fluctuation pattern
+price_fluctuation = np.random.normal(0, 0.15)
+st.session_state.live_oil_price = round(st.session_state.live_oil_price + price_fluctuation, 2)
+st.session_state.oil_history.append(st.session_state.live_oil_price)
+
+# Maintain a rolling window of the last 15 points
+if len(st.session_state.oil_history) > 15:
+    st.session_state.oil_history.pop(0)
+
+# Build a compact live-updating sparkline
+sparkline = go.Figure()
+sparkline.add_trace(go.Scatter(
+    y=st.session_state.oil_history, 
+    mode='lines+markers',
+    line=dict(color='#2ca02c' if price_fluctuation >= 0 else '#d62728', width=2),
+    marker=dict(size=4)
+))
+sparkline.update_layout(
+    height=80, margin=dict(l=10, r=10, t=0, b=0),
+    xaxis=dict(visible=False), yaxis=dict(visible=False),
+    template="plotly_white", showlegend=False
+)
+
+with ticker_placeholder.container():
+    col_t1, col_t2 = st.columns([1, 3])
+    with col_t1:
+        st.metric(
+            label="Live WTI Crude Oil (Sim)", 
+            value=f"${st.session_state.live_oil_price:.2f}", 
+            delta=f"{price_fluctuation:+.2f}"
+        )
+    with col_t2:
+        st.plotly_chart(sparkline, use_container_width=True, config={'displayModeBar': False})
+
+# Forces Streamlit to auto-rerun this specific layout section every 3 seconds
+time.sleep(3.0)
+st.rerun()
 # 3. TABBED UI LAYOUT
 # ==========================================
 tab1, tab2 = st.tabs(["📊 Market Dashboard", "💬 AI Financial Analyst"])
