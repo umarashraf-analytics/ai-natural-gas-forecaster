@@ -159,4 +159,33 @@ with tab2:
             st.markdown(prompt)
             
         with st.chat_message("assistant"):
-            active_key = api_key if api_key else st.secrets.get("GROQ_API_KEY
+            active_key = api_key if api_key else st.secrets.get("GROQ_API_KEY")
+            
+            if active_key:
+                try:
+                    client = Groq(api_key=active_key)
+                    system_context = f"""You are a J.P. Morgan Quantitative Analyst. You are polite, highly analytical, and concise. 
+                    Current Gas Price: ${current_price:.2f}. 
+                    Target Date selected by user: {target_date.strftime('%B %Y')}. 
+                    XGBoost Forecasted Price: ${forecast_price:.2f}.
+                    Base your answers on these numbers and general energy market knowledge."""
+                    
+                    messages = [{"role": "system", "content": system_context}] + st.session_state.messages
+                    response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=messages,
+                        temperature=0.7
+                    )
+                    reply = response.choices[0].message.content
+                    st.markdown(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                except Exception as e:
+                    st.error(f"API Error: Please check your Groq Key. ({e})")
+            else:
+                reply = f"*(Simulated Response)* That's a great question about the ${forecast_price:.2f} forecast for {target_date.strftime('%B %Y')}. In a live environment with an API key, I would analyze this utilizing advanced market heuristics. For now, trust the XGBoost model's seasonal mapping!"
+                st.markdown(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+
+# Controlled high-frequency ticker loop rerun
+time.sleep(3.0)
+st.rerun()
