@@ -5,6 +5,7 @@ import xgboost as xgb
 import plotly.graph_objects as go
 from groq import Groq
 from datetime import timedelta
+import time
 
 # ==========================================
 # PAGE SETUP & CUSTOM CSS FOR GREAT UI
@@ -62,35 +63,30 @@ with st.sidebar:
     target_date = st.date_input("Target Forecast Date:", value=pd.to_datetime("2025-01-15"))
     target_date = pd.to_datetime(target_date)
     forecast_price = predict_future(target_date)
- api_key = None
     
+    # Static placeholder variable for backend stability
+    api_key = None
     price_delta = forecast_price - current_price
 
 # ==========================================
+# 3. LIVE COMMODITY FEED SIMULATION
 # ==========================================
-# LIVE COMMODITY FEED SIMULATION
-# ==========================================
-import time
-
 st.markdown("### 🌐 Live Market Data Stream")
 ticker_placeholder = st.empty()
 
-# We cache a baseline session price so it oscillates cleanly rather than jumping wildly
 if "live_oil_price" not in st.session_state:
     st.session_state.live_oil_price = 78.50
     st.session_state.oil_history = [78.10, 78.35, 78.20, 78.45, 78.50]
 
-# High-frequency simulation update loop
-# Creates a non-blocking fluctuation pattern
+# Generate simulation data oscillations
 price_fluctuation = np.random.normal(0, 0.15)
 st.session_state.live_oil_price = round(st.session_state.live_oil_price + price_fluctuation, 2)
 st.session_state.oil_history.append(st.session_state.live_oil_price)
 
-# Maintain a rolling window of the last 15 points
 if len(st.session_state.oil_history) > 15:
     st.session_state.oil_history.pop(0)
 
-# Build a compact live-updating sparkline
+# Build sparkline graph
 sparkline = go.Figure()
 sparkline.add_trace(go.Scatter(
     y=st.session_state.oil_history, 
@@ -115,10 +111,8 @@ with ticker_placeholder.container():
     with col_t2:
         st.plotly_chart(sparkline, use_container_width=True, config={'displayModeBar': False})
 
-# Forces Streamlit to auto-rerun this specific layout section every 3 seconds
-time.sleep(3.0)
-st.rerun()
-# 3. TABBED UI LAYOUT
+# ==========================================
+# 4. TABBED UI LAYOUT
 # ==========================================
 tab1, tab2 = st.tabs(["📊 Market Dashboard", "💬 AI Financial Analyst"])
 
@@ -165,29 +159,4 @@ with tab2:
             st.markdown(prompt)
             
         with st.chat_message("assistant"):
-            active_key = api_key if api_key else st.secrets.get("GROQ_API_KEY")
-            
-            if active_key:
-                try:
-                    client = Groq(api_key=active_key)
-                    system_context = f"""You are a J.P. Morgan Quantitative Analyst. You are polite, highly analytical, and concise. 
-                    Current Gas Price: ${current_price:.2f}. 
-                    Target Date selected by user: {target_date.strftime('%B %Y')}. 
-                    XGBoost Forecasted Price: ${forecast_price:.2f}.
-                    Base your answers on these numbers and general energy market knowledge."""
-                    
-                    messages = [{"role": "system", "content": system_context}] + st.session_state.messages
-                    response = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
-                        messages=messages,
-                        temperature=0.7
-                    )
-                    reply = response.choices[0].message.content
-                    st.markdown(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                except Exception as e:
-                    st.error(f"API Error: Please check your Groq Key. ({e})")
-            else:
-                reply = f"*(Simulated Response)* That's a great question about the ${forecast_price:.2f} forecast for {target_date.strftime('%B %Y')}. In a live environment with an API key, I would analyze this utilizing advanced market heuristics. For now, trust the XGBoost model's seasonal mapping!"
-                st.markdown(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
+            active_key = api_key if api_key else st.secrets.get("GROQ_API_KEY
